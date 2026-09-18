@@ -11,7 +11,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context';
 import { soundManager } from '../../utils/audio';
 
 interface LandingNavbarProps {

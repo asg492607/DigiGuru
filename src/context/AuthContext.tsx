@@ -1,42 +1,19 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import type { LoginCredentials, RegisterData, UserAccount } from '../types/auth';
 import { authService } from '../services/authService';
-
-interface AuthContextType {
-  user: UserAccount | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (credentials: LoginCredentials) => { success: boolean; message?: string; user?: UserAccount };
-  register: (data: RegisterData) => { success: boolean; message?: string; user?: UserAccount };
-  logout: () => void;
-  updateUserStarsAndBadges: (stars: number, newBadge?: { id: string; name: string; icon: string; description: string; unlockedAt: string }) => void;
-  isAuthModalOpen: boolean;
-  authModalMode: 'login' | 'register';
-  openAuthModal: (mode?: 'login' | 'register') => void;
-  closeAuthModal: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext, type AuthContextType } from './authContextDef';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserAccount | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<UserAccount | null>(() => {
+    try {
+      return authService.getSession()?.user || null;
+    } catch {
+      return null;
+    }
+  });
+  const [isLoading] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
-
-  // Re-hydrate session on initial mount
-  useEffect(() => {
-    try {
-      const session = authService.getSession();
-      if (session) {
-        setUser(session.user);
-      }
-    } catch (e) {
-      console.error('Error hydrating session', e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
   const login = useCallback((credentials: LoginCredentials) => {
     const res = authService.login(credentials);
@@ -106,10 +83,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+export default AuthProvider;

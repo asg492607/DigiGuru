@@ -14,7 +14,7 @@ import {
   KeyRound,
   GraduationCap,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context';
 import { authService } from '../../services/authService';
 import { soundManager } from '../../utils/audio';
 
