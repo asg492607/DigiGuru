@@ -1,4 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthModal } from './components/auth/AuthModal';
+import { LandingPage } from './components/landing/LandingPage';
 import { CampusCanvas } from './components/3d/CampusCanvas';
 import { CampusHUD } from './components/ui/CampusHUD';
 import { CampusBlueprintModal } from './components/ui/CampusBlueprintModal';
@@ -10,7 +13,12 @@ import { CAMPUS_SCHEDULE, CAMPUS_ZONES, INITIAL_CLASSMATES, NURSERY_LESSONS } fr
 import type { CampusZoneId, Classmate, NurseryLesson, StudentProfile, TeacherState } from './types/campus';
 import { soundManager } from './utils/audio';
 
-export function App() {
+function DigiGuruApp() {
+  const { user, logout, updateUserStarsAndBadges } = useAuth();
+
+  // Active View: 'landing' (Metaverse landing page) | 'campus' (3D Interactive WebGL)
+  const [viewMode, setViewMode] = useState<'landing' | 'campus'>('landing');
+
   // Student Profile State
   const [student, setStudent] = useState<StudentProfile>({
     name: 'Aryan 👦',
@@ -42,6 +50,27 @@ export function App() {
     ],
   });
 
+  // Sync authenticated user data into student profile when user logs in or registers
+  useEffect(() => {
+    if (user) {
+      setStudent({
+        name: `${user.name} ${user.avatar || '👦'}`,
+        standard: user.standard || 'Nursery A',
+        digiStars: user.digiStars ?? 50,
+        currentZone: 'shivaji_statue',
+        badges: user.badges && user.badges.length > 0 ? user.badges : [
+          {
+            id: 'b1',
+            name: 'Campus Citizen',
+            icon: '🎒',
+            description: 'Enrolled in DigiGuru Digital Campus',
+            unlockedAt: 'Today',
+          },
+        ],
+      });
+    }
+  }, [user]);
+
   // Current Player 3D Position
   // Initial position: on Grand Boulevard facing the Central Quad & Shivaji Statue
   const [playerPos, setPlayerPos] = useState<[number, number, number]>([0, 0, 14]);
@@ -56,7 +85,7 @@ export function App() {
     active: false,
   });
 
-  // Active emote ('wave', 'cheer', 'sit', 'none')
+  // Active emote ('wave' | 'cheer' | 'sit' | 'none')
   const [activeEmote, setActiveEmote] = useState<'none' | 'wave' | 'cheer' | 'sit'>('none');
 
   // Active Classmates
@@ -84,7 +113,6 @@ export function App() {
   const [isBackpackOpen, setIsBackpackOpen] = useState<boolean>(false);
 
   // Check if player is currently inside the Nursery Wing
-  // Nursery Classroom center is around [-22, 0, 5], bounding box roughly [-30, -14] X and [-2, 12] Z
   const isInsideNursery = useMemo(() => {
     return playerPos[0] < -14 && playerPos[0] > -30 && playerPos[2] > -2 && playerPos[2] < 12;
   }, [playerPos]);
@@ -96,7 +124,7 @@ export function App() {
     }
   }, [isInsideNursery, currentPeriod.status, teacherState]);
 
-  // Callback when Miss Maya walks all the way down the aisle and reaches the podium
+  // Callback when Miss Maya reaches podium
   const handleTeacherArrival = useCallback(() => {
     setTeacherState('teaching');
     soundManager.speakTeacher("Welcome students! Please be seated. Let us begin today's lesson!");
@@ -152,25 +180,21 @@ export function App() {
 
     soundManager.playClick();
     if (zoneId === 'bldg_nursery') {
-      // Teleport right inside the classroom on the rainbow circle rug
       setPlayerPos([-22, 0, 2]);
     } else if (zoneId === 'shivaji_statue') {
-      // Step right in front of the Chhatrapati Shivaji Maharaj memorial
       setPlayerPos([0, 0, 5]);
     } else if (zoneId === 'entrance') {
-      // Step right before the grand perimeter gate
       setPlayerPos([0, 0, 56]);
     } else {
-      // Step outside the entrance of the building/facility
       setPlayerPos([targetZone.position[0], 0, targetZone.position[2] + 7]);
     }
     setClickTarget(null);
   }, []);
 
-  // Exit classroom back to the main quad outside the nursery door
+  // Exit classroom back to the main quad
   const handleExitToCampus = useCallback(() => {
     soundManager.playClick();
-    setPlayerPos([-22, 0, 14]); // step out in front of nursery portal
+    setPlayerPos([-22, 0, 14]);
     setClickTarget(null);
   }, []);
 
@@ -179,7 +203,6 @@ export function App() {
     if (currentStepIndex < currentLesson.steps.length - 1) {
       setCurrentStepIndex((prev) => prev + 1);
     } else {
-      // Loop or advance to next lesson
       soundManager.playStarJingle();
       if (currentLesson.id === 'counting') {
         setCurrentLesson(NURSERY_LESSONS[1]); // Safari
@@ -190,13 +213,17 @@ export function App() {
     }
   }, [currentStepIndex, currentLesson]);
 
-  // Award stars
+  // Award stars with persistent sync
   const handleRewardStars = useCallback((amount: number) => {
-    setStudent((prev) => ({
-      ...prev,
-      digiStars: prev.digiStars + amount,
-    }));
-  }, []);
+    setStudent((prev) => {
+      const newTotal = prev.digiStars + amount;
+      updateUserStarsAndBadges(newTotal);
+      return {
+        ...prev,
+        digiStars: newTotal,
+      };
+    });
+  }, [updateUserStarsAndBadges]);
 
   // Classmate interaction
   const handleSelectClassmate = useCallback((c: Classmate) => {
@@ -216,99 +243,143 @@ export function App() {
     }, 2500);
   }, []);
 
+  // Handle Logout
+  const handleLogout = useCallback(() => {
+    logout();
+    setViewMode('landing');
+    setClassmateToast('You have signed out. Hope to see you again soon!');
+    setTimeout(() => setClassmateToast(null), 3000);
+  }, [logout]);
+
   return (
     <div className="w-full h-full relative overflow-hidden bg-slate-950 font-sans">
-      {/* 3D WebGL Canvas */}
-      <CampusCanvas
-        playerPos={playerPos}
-        onPlayerPosChange={setPlayerPos}
-        isInsideNursery={isInsideNursery}
-        onEnterZone={(id) => handleTravelToZone(id as CampusZoneId)}
-        onExitToCampus={handleExitToCampus}
-        classmates={classmates}
-        onSelectClassmate={handleSelectClassmate}
-        currentStep={currentLesson.steps[currentStepIndex]}
-        teacherSpeaking={teacherSpeaking}
-        teacherGesture={teacherGesture}
-        teacherModel={teacherModel}
-        teacherState={teacherState}
-        onTeacherArrival={handleTeacherArrival}
-        virtualJoystick={virtualJoystick}
-        clickTarget={clickTarget}
-        onGroundClick={(coords) => setClickTarget(coords)}
-        onClearClickTarget={() => setClickTarget(null)}
-        emote={activeEmote}
-      />
-
-      {/* Main Campus HUD Overlay */}
-      <CampusHUD
-        currentZone={currentZone}
-        playerPos={playerPos}
-        isInsideNursery={isInsideNursery}
-        digiStars={student.digiStars}
-        onOpenMap={() => setIsMapOpen(true)}
-        onOpenBackpack={() => setIsBackpackOpen(true)}
-        onSelectZone={(id) => handleTravelToZone(id as CampusZoneId)}
-        onTriggerEmote={handleTriggerEmote}
-        classmates={classmates}
-      />
-
-      {/* School Schedule & Bell Chime Banner */}
-      <SchoolScheduleBanner
-        currentPeriod={currentPeriod}
-        teacherState={teacherState}
-        onRingBell={handleRingBell}
-        isInsideClassroom={isInsideNursery}
-      />
-
-      {/* On-Screen Virtual Joystick for Touch & Mouse */}
-      <StudentControlsJoy onMove={setVirtualJoystick} />
-
-      {/* Nursery AI Teacher Interactive Dialogue Balloon (when inside classroom) */}
-      {isInsideNursery && (
-        <TeacherDialogueOverlay
-          currentLesson={currentLesson}
-          currentStepIndex={currentStepIndex}
-          onNextStep={handleNextStep}
-          onSelectLesson={(les) => {
-            setCurrentLesson(les);
-            setCurrentStepIndex(0);
+      {/* View Switcher: Landing Page or 3D Campus */}
+      {viewMode === 'landing' ? (
+        <LandingPage
+          onEnterCampus={() => {
+            soundManager.playClick();
+            setViewMode('campus');
           }}
-          onRewardStars={handleRewardStars}
-          onSetTeacherSpeaking={setTeacherSpeaking}
-          onSetTeacherGesture={setTeacherGesture}
-          teacherModel={teacherModel}
-          onToggleTeacherModel={() =>
-            setTeacherModel((prev) => (prev === 'human' ? 'robot' : 'human'))
-          }
-          schoolPeriod={currentPeriod}
-          teacherState={teacherState}
-          onRingBell={handleRingBell}
+          onOpenMap={() => setIsMapOpen(true)}
         />
+      ) : (
+        <>
+          {/* 3D WebGL Canvas */}
+          <CampusCanvas
+            playerPos={playerPos}
+            onPlayerPosChange={setPlayerPos}
+            isInsideNursery={isInsideNursery}
+            onEnterZone={(id) => handleTravelToZone(id as CampusZoneId)}
+            onExitToCampus={handleExitToCampus}
+            classmates={classmates}
+            onSelectClassmate={handleSelectClassmate}
+            currentStep={currentLesson.steps[currentStepIndex]}
+            teacherSpeaking={teacherSpeaking}
+            teacherGesture={teacherGesture}
+            teacherModel={teacherModel}
+            teacherState={teacherState}
+            onTeacherArrival={handleTeacherArrival}
+            virtualJoystick={virtualJoystick}
+            clickTarget={clickTarget}
+            onGroundClick={(coords) => setClickTarget(coords)}
+            onClearClickTarget={() => setClickTarget(null)}
+            emote={activeEmote}
+          />
+
+          {/* Main Campus HUD Overlay */}
+          <CampusHUD
+            currentZone={currentZone}
+            playerPos={playerPos}
+            isInsideNursery={isInsideNursery}
+            digiStars={student.digiStars}
+            studentName={user?.name || student.name.replace(/[^a-zA-Z\s]/g, '').trim()}
+            studentAvatar={user?.avatar || '👦'}
+            studentStandard={user?.standard || student.standard}
+            onOpenMap={() => setIsMapOpen(true)}
+            onOpenBackpack={() => setIsBackpackOpen(true)}
+            onSelectZone={(id) => handleTravelToZone(id as CampusZoneId)}
+            onTriggerEmote={handleTriggerEmote}
+            onReturnToLanding={() => setViewMode('landing')}
+            onLogout={handleLogout}
+            classmates={classmates}
+          />
+
+          {/* School Schedule & Bell Chime Banner */}
+          <SchoolScheduleBanner
+            currentPeriod={currentPeriod}
+            teacherState={teacherState}
+            onRingBell={handleRingBell}
+            isInsideClassroom={isInsideNursery}
+          />
+
+          {/* On-Screen Virtual Joystick for Touch & Mouse */}
+          <StudentControlsJoy onMove={setVirtualJoystick} />
+
+          {/* Nursery AI Teacher Interactive Dialogue Balloon (when inside classroom) */}
+          {isInsideNursery && (
+            <TeacherDialogueOverlay
+              currentLesson={currentLesson}
+              currentStepIndex={currentStepIndex}
+              onNextStep={handleNextStep}
+              onSelectLesson={(les) => {
+                setCurrentLesson(les);
+                setCurrentStepIndex(0);
+              }}
+              onRewardStars={handleRewardStars}
+              onSetTeacherSpeaking={setTeacherSpeaking}
+              onSetTeacherGesture={setTeacherGesture}
+              teacherModel={teacherModel}
+              onToggleTeacherModel={() =>
+                setTeacherModel((prev) => (prev === 'human' ? 'robot' : 'human'))
+              }
+              schoolPeriod={currentPeriod}
+              teacherState={teacherState}
+              onRingBell={handleRingBell}
+            />
+          )}
+
+          {/* Classmate / School Announcement Toast */}
+          {classmateToast && (
+            <div className="absolute top-28 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 backdrop-blur-md border border-indigo-500/50 px-5 py-3 rounded-2xl text-slate-100 text-xs md:text-sm font-semibold shadow-2xl animate-bounce text-center max-w-lg">
+              {classmateToast}
+            </div>
+          )}
+
+          {/* Student Backpack Modal */}
+          <BackpackModal
+            isOpen={isBackpackOpen}
+            onClose={() => setIsBackpackOpen(false)}
+            student={student}
+          />
+        </>
       )}
 
-      {/* Classmate / School Announcement Toast */}
-      {classmateToast && (
-        <div className="absolute top-28 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 backdrop-blur-md border border-indigo-500/50 px-5 py-3 rounded-2xl text-slate-100 text-xs md:text-sm font-semibold shadow-2xl animate-bounce text-center max-w-lg">
-          {classmateToast}
-        </div>
-      )}
+      {/* Global Auth Modal (Login & Registration) */}
+      <AuthModal
+        onSuccessLogin={() => {
+          setViewMode('campus');
+        }}
+      />
 
-      {/* Campus Blueprint Map Modal */}
+      {/* Global Campus Blueprint Map Modal (accessible from landing & campus) */}
       <CampusBlueprintModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onTravelToZone={handleTravelToZone}
+        onTravelToZone={(id) => {
+          handleTravelToZone(id);
+          setViewMode('campus');
+        }}
         currentZoneId={currentZone.id}
       />
-
-      {/* Student Backpack Modal */}
-      <BackpackModal
-        isOpen={isBackpackOpen}
-        onClose={() => setIsBackpackOpen(false)}
-        student={student}
-      />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <DigiGuruApp />
+    </AuthProvider>
   );
 }
 

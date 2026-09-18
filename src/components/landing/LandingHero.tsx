@@ -4,9 +4,7 @@ import {
   ArrowRight,
   Compass,
   Play,
-  ShieldCheck,
   Award,
-  Users,
   Building2,
   Cpu,
 } from 'lucide-react';
@@ -19,7 +17,7 @@ interface LandingHeroProps {
 }
 
 export const LandingHero: React.FC<LandingHeroProps> = ({ onEnterCampus, onOpenMap }) => {
-  const { user, isAuthenticated, openAuthModal } = useAuth();
+  const { isAuthenticated, openAuthModal } = useAuth();
 
   return (
     <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden">

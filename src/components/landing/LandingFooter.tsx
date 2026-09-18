@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Heart, Compass, ArrowUp } from 'lucide-react';
+import { Sparkles, ArrowUp } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 
 interface LandingFooterProps {

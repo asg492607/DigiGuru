@@ -2,12 +2,9 @@ import React from 'react';
 import {
   Sparkles,
   Bot,
-  UserCheck,
   Volume2,
   Users,
-  Award,
   CheckCircle,
-  MessageSquare,
   ArrowRight,
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';

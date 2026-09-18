@@ -6,8 +6,6 @@ import {
   Microscope,
   Baby,
   Cpu,
-  Palette,
-  Calculator,
   ChevronRight,
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';

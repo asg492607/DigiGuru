@@ -1,11 +1,5 @@
 import React from 'react';
 import {
-  Star,
-  Backpack,
-  Bell,
-  Smile,
-  Award,
-  Sparkles,
   Trophy,
 } from 'lucide-react';
 

@@ -1,12 +1,5 @@
-import React from 'react';
 import {
-  MapPin,
-  Sparkles,
   ArrowRight,
-  BookOpen,
-  Award,
-  Flame,
-  Activity,
   Compass,
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';

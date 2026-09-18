@@ -7,6 +7,8 @@ import {
   Sparkles,
   MapPin,
   Backpack,
+  Home,
+  LogOut,
 } from 'lucide-react';
 import type { CampusZone, Classmate } from '../../types/campus';
 import { CAMPUS_ZONES } from '../../data/campusData';
@@ -17,10 +19,15 @@ interface CampusHUDProps {
   playerPos: [number, number, number];
   isInsideNursery: boolean;
   digiStars: number;
+  studentName?: string;
+  studentAvatar?: string;
+  studentStandard?: string;
   onOpenMap: () => void;
   onOpenBackpack: () => void;
   onSelectZone: (zoneId: string) => void;
   onTriggerEmote: (emote: 'wave' | 'cheer' | 'sit') => void;
+  onReturnToLanding?: () => void;
+  onLogout?: () => void;
   classmates: Classmate[];
 }
 
@@ -29,10 +36,15 @@ export const CampusHUD: React.FC<CampusHUDProps> = ({
   playerPos,
   isInsideNursery,
   digiStars,
+  studentName,
+  studentAvatar,
+  studentStandard,
   onOpenMap,
   onOpenBackpack,
   onSelectZone,
   onTriggerEmote,
+  onReturnToLanding,
+  onLogout,
   classmates,
 }) => {
   const [isMuted, setIsMuted] = React.useState(soundManager.getIsMuted());
@@ -62,28 +74,59 @@ export const CampusHUD: React.FC<CampusHUDProps> = ({
       {/* ============================================================== */}
       <div className="flex items-center justify-between w-full">
         {/* DigiGuru Campus Brand & Zone Status */}
-        <div className="flex items-center gap-3 bg-slate-900/85 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-indigo-500/30 shadow-xl pointer-events-auto">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base tracking-wide bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">
-                DigiGuru
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
-                {isInsideNursery ? 'Nursery Classroom' : 'Main Campus'}
-              </span>
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {onReturnToLanding && (
+            <button
+              onClick={() => {
+                soundManager.playClick();
+                onReturnToLanding();
+              }}
+              title="Return to Landing Page"
+              className="h-12 px-3 rounded-2xl bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-indigo-500/30 text-slate-300 hover:text-white flex items-center gap-1.5 text-xs font-semibold shadow-xl transition-all hover:scale-105 active:scale-95"
+            >
+              <Home className="w-4 h-4 text-indigo-400" />
+              <span className="hidden sm:inline">Landing</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-3 bg-slate-900/85 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-indigo-500/30 shadow-xl">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
-              <MapPin className="w-3.5 h-3.5 text-pink-400" />
-              <span>{currentZone.name}</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-base tracking-wide bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">
+                  DigiGuru
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                  {isInsideNursery ? 'Nursery Classroom' : 'Main Campus'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
+                <MapPin className="w-3.5 h-3.5 text-pink-400" />
+                <span>{currentZone.name}</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Top Right Stats, Controls & Minimap */}
-        <div className="flex items-center gap-3 pointer-events-auto">
+        <div className="flex items-center gap-2.5 pointer-events-auto">
+          {/* Active Student Profile Pill */}
+          {studentName && (
+            <div className="hidden md:flex items-center gap-2 bg-slate-900/85 backdrop-blur-md border border-indigo-500/30 px-3 py-1.5 rounded-2xl shadow-lg">
+              <span className="text-base">{studentAvatar || '👦'}</span>
+              <div className="text-left">
+                <div className="text-xs font-bold text-slate-200 leading-tight truncate max-w-[110px]">
+                  {studentName}
+                </div>
+                <div className="text-[10px] text-indigo-300 leading-tight">
+                  {studentStandard || 'Nursery A'}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* DigiStars Counter */}
           <div className="flex items-center gap-2 bg-amber-500/15 backdrop-blur-md border border-amber-500/30 px-3.5 py-2 rounded-2xl shadow-lg">
             <span className="text-lg">⭐</span>
@@ -119,6 +162,20 @@ export const CampusHUD: React.FC<CampusHUDProps> = ({
           >
             <Backpack className="w-5 h-5" />
           </button>
+
+          {/* Logout Action */}
+          {onLogout && (
+            <button
+              onClick={() => {
+                soundManager.playClick();
+                onLogout();
+              }}
+              title="Sign Out / Switch Account"
+              className="w-10 h-10 rounded-xl bg-slate-900/80 hover:bg-rose-950/60 backdrop-blur-md border border-slate-700/60 hover:border-rose-500/40 flex items-center justify-center text-slate-400 hover:text-rose-300 transition-all hover:scale-105 active:scale-95 shadow-md"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Campus Blueprint Map Button */}
           <button
