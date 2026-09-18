@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context';
 import { AuthModal } from './components/auth/AuthModal';
 import { LandingPage } from './components/landing/LandingPage';
 import { CampusCanvas } from './components/3d/CampusCanvas';
@@ -19,44 +19,15 @@ function DigiGuruApp() {
   // Active View: 'landing' (Metaverse landing page) | 'campus' (3D Interactive WebGL)
   const [viewMode, setViewMode] = useState<'landing' | 'campus'>('landing');
 
-  // Student Profile State
-  const [student, setStudent] = useState<StudentProfile>({
-    name: 'Aryan 👦',
-    standard: 'Nursery A',
-    digiStars: 60,
-    currentZone: 'shivaji_statue',
-    badges: [
-      {
-        id: 'b1',
-        name: 'First Day at School',
-        icon: '🎒',
-        description: 'Stepped onto the DigiGuru Campus',
-        unlockedAt: 'Today',
-      },
-      {
-        id: 'b2',
-        name: 'Counting Star',
-        icon: '⭐',
-        description: 'Learned numbers 1 to 5 with Guru-Bot',
-        unlockedAt: 'Today',
-      },
-      {
-        id: 'b3',
-        name: 'Junior Safari Ranger',
-        icon: '🐘',
-        description: 'Summoned the 3D Elephant AR Hologram',
-        unlockedAt: 'Today',
-      },
-    ],
-  });
+  const [bonusStars, setBonusStars] = useState<number>(0);
 
-  // Sync authenticated user data into student profile when user logs in or registers
-  useEffect(() => {
+  // Derive student profile dynamically from authenticated user
+  const student: StudentProfile = useMemo(() => {
     if (user) {
-      setStudent({
+      return {
         name: `${user.name} ${user.avatar || '👦'}`,
         standard: user.standard || 'Nursery A',
-        digiStars: user.digiStars ?? 50,
+        digiStars: (user.digiStars ?? 50) + bonusStars,
         currentZone: 'shivaji_statue',
         badges: user.badges && user.badges.length > 0 ? user.badges : [
           {
@@ -67,9 +38,38 @@ function DigiGuruApp() {
             unlockedAt: 'Today',
           },
         ],
-      });
+      };
     }
-  }, [user]);
+    return {
+      name: 'Aryan 👦',
+      standard: 'Nursery A',
+      digiStars: 60 + bonusStars,
+      currentZone: 'shivaji_statue',
+      badges: [
+        {
+          id: 'b1',
+          name: 'First Day at School',
+          icon: '🎒',
+          description: 'Stepped onto the DigiGuru Campus',
+          unlockedAt: 'Today',
+        },
+        {
+          id: 'b2',
+          name: 'Counting Star',
+          icon: '⭐',
+          description: 'Learned numbers 1 to 5 with Guru-Bot',
+          unlockedAt: 'Today',
+        },
+        {
+          id: 'b3',
+          name: 'Junior Safari Ranger',
+          icon: '🐘',
+          description: 'Summoned the 3D Elephant AR Hologram',
+          unlockedAt: 'Today',
+        },
+      ],
+    };
+  }, [user, bonusStars]);
 
   // Current Player 3D Position
   // Initial position: on Grand Boulevard facing the Central Quad & Shivaji Statue
@@ -120,7 +120,10 @@ function DigiGuruApp() {
   // If inside classroom and a class session is active, start teacher entering if still in lounge
   useEffect(() => {
     if (isInsideNursery && currentPeriod.status === 'class_in_session' && teacherState === 'in_lounge') {
-      setTeacherState('entering');
+      const timer = setTimeout(() => {
+        setTeacherState('entering');
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isInsideNursery, currentPeriod.status, teacherState]);
 
@@ -215,15 +218,13 @@ function DigiGuruApp() {
 
   // Award stars with persistent sync
   const handleRewardStars = useCallback((amount: number) => {
-    setStudent((prev) => {
-      const newTotal = prev.digiStars + amount;
-      updateUserStarsAndBadges(newTotal);
-      return {
-        ...prev,
-        digiStars: newTotal,
-      };
+    setBonusStars((prev) => {
+      const updated = prev + amount;
+      const base = user?.digiStars ?? 60;
+      updateUserStarsAndBadges(base + updated);
+      return updated;
     });
-  }, [updateUserStarsAndBadges]);
+  }, [user, updateUserStarsAndBadges]);
 
   // Classmate interaction
   const handleSelectClassmate = useCallback((c: Classmate) => {
