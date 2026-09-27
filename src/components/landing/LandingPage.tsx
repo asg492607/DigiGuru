@@ -16,7 +16,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterCampus, onOpenMap }) => {
   return (
-    <div className="w-full h-full overflow-y-auto bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="landing-scroll w-full h-full bg-[#060c1a] text-slate-100 font-sans selection:bg-indigo-500/40 selection:text-white">
       {/* Top Fixed Navbar */}
       <LandingNavbar onEnterCampus={onEnterCampus} onOpenMap={onOpenMap} />
 
@@ -28,14 +28,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterCampus, onOpenM
       {/* 15 Academic Standards */}
       <AcademicWingsSection onEnterCampus={onEnterCampus} />
 
-      {/* Iconic Campus Landmarks */}
-      <CampusHighlightsSection onEnterCampus={onEnterCampus} onOpenMap={onOpenMap} />
-
       {/* AI Faculty & Classmates */}
       <AiFacultySection onEnterCampus={onEnterCampus} />
 
+      {/* Iconic Campus Landmarks */}
+      <CampusHighlightsSection onEnterCampus={onEnterCampus} onOpenMap={onOpenMap} />
+
       {/* Student Life & Gamification */}
-      <GamificationSection />
+      <GamificationSection onEnterCampus={onEnterCampus} />
 
       {/* Community Testimonials */}
       <TestimonialsSection />

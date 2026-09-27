@@ -1,6 +1,10 @@
+import React, { useState } from 'react';
 import {
   ArrowRight,
   Compass,
+  Scan,
+  MapPin,
+  Zap,
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 
@@ -17,6 +21,10 @@ interface Landmark {
   description: string;
   coords: string;
   gradient: string;
+  borderColor: string;
+  accentColor: string;
+  arTag: string;
+  features: string[];
 }
 
 const LANDMARKS: Landmark[] = [
@@ -26,59 +34,83 @@ const LANDMARKS: Landmark[] = [
     icon: '🚩',
     badge: 'Campus Center',
     description:
-      'The crown jewel of DigiGuru: a magnificent bronze statue mounted on tiered stone steps with saffron standards, celebrating valor, leadership, and Indian heritage.',
-    coords: '[0, 0, 5]',
-    gradient: 'from-amber-600/30 to-orange-600/30',
+      'The crown jewel of DigiGuru: a magnificent bronze equestrian statue on tiered stone steps with saffron standards, Maratha cultural emblems, and a sacred courtyard.',
+    coords: 'X:0, Z:5',
+    gradient: 'from-amber-600/30 to-orange-600/20',
+    borderColor: 'border-amber-500/30',
+    accentColor: 'text-amber-400',
+    arTag: 'Cultural AR Overlay',
+    features: ['Bronze equestrian monument', 'Saffron flag standards', 'Interactive history plaques'],
   },
   {
-    title: 'Nursery Wing & Rainbow Interactive Classroom',
-    category: 'Early Learning',
+    title: 'Nursery Smart Wing & Rainbow Classroom',
+    category: 'Early Learning AR',
     icon: '🧸',
-    badge: 'Interactive AR',
+    badge: 'Interactive AR Zone',
     description:
-      'A cozy learning sanctum with rainbow circle rugs, ABC & 123 wall posters, low wooden desks, and an AR projection pad for summoning life-sized 3D safari animals.',
-    coords: '[-22, 0, 2]',
-    gradient: 'from-pink-600/30 to-purple-600/30',
+      'Rainbow circle rugs, ABC & 123 wall posters, low wooden desks, and a glowing AR projection pad for summoning life-size 3D safari animals and floating number orbs.',
+    coords: 'X:-22, Z:2',
+    gradient: 'from-pink-600/25 to-rose-600/20',
+    borderColor: 'border-pink-500/30',
+    accentColor: 'text-pink-400',
+    arTag: 'Elephant Hologram',
+    features: ['3D AR animal projector', 'Miss Maya AI podium', 'Rainbow sensory rug circle'],
   },
   {
-    title: 'High-Tech Innovation & Robotics Hub',
-    category: 'Advanced STEM',
+    title: 'Robotics & Innovation Hub',
+    category: 'Advanced STEM Lab',
     icon: '🤖',
-    badge: 'AI & Coding',
+    badge: 'AI & Coding Center',
     description:
-      'Home to Guru-Bot AI, coding terminals, 3D printing simulators, and physics sandbox arenas where middle & high schoolers build tomorrow’s tech.',
-    coords: '[30, 0, -25]',
-    gradient: 'from-cyan-600/30 to-blue-600/30',
+      'Home to Guru-Bot 2.0 AI, live coding terminals, 3D printing simulators, robotics arenas, and physics sandbox environments where tomorrow\'s engineers are built today.',
+    coords: 'X:30, Z:-25',
+    gradient: 'from-cyan-600/25 to-blue-600/20',
+    borderColor: 'border-cyan-500/30',
+    accentColor: 'text-cyan-400',
+    arTag: 'AR Circuit Overlay',
+    features: ['Guru-Bot teaching station', 'Code compilation terminal', 'AR electronics workbench'],
   },
   {
-    title: 'Grand Central Library & Archives',
+    title: 'Grand Central Library & Digital Archives',
     category: 'Academic Knowledge',
     icon: '📚',
-    badge: 'Digital Library',
+    badge: 'Research Library',
     description:
-      'Two levels of towering wooden bookshelves, quiet study carrels, and digitized manuscripts spanning Vedic sciences to modern quantum mechanics.',
-    coords: '[-30, 0, -25]',
-    gradient: 'from-indigo-600/30 to-purple-600/30',
+      'Two levels of towering wooden bookshelves, quiet study carrels with holographic displays, and digitized manuscripts spanning Vedic sciences to modern quantum mechanics.',
+    coords: 'X:-30, Z:-25',
+    gradient: 'from-indigo-600/25 to-violet-600/20',
+    borderColor: 'border-indigo-500/30',
+    accentColor: 'text-indigo-400',
+    arTag: 'AR Book Scanner',
+    features: ['Holographic reading desks', 'Vedic to modern archives', '3D knowledge visualization'],
   },
   {
-    title: 'Olympic Sports Arena & Pavilion',
+    title: 'Olympic Sports Arena & Wellness Pavilion',
     category: 'Athletics & Wellness',
     icon: '⚽',
-    badge: 'Physical Health',
+    badge: 'Sports Complex',
     description:
-      'Full-size running tracks, basketball courts, and grassy playfields where students practice coordination, sportsmanship, and virtual outdoor emotes.',
-    coords: '[35, 0, 25]',
-    gradient: 'from-emerald-600/30 to-teal-600/30',
+      'Full-size running tracks, basketball courts, and grassy playfields where students practice coordination, sportsmanship, and trigger outdoor emotes with classmates.',
+    coords: 'X:35, Z:25',
+    gradient: 'from-emerald-600/25 to-teal-600/20',
+    borderColor: 'border-emerald-500/30',
+    accentColor: 'text-emerald-400',
+    arTag: 'AR Score Tracker',
+    features: ['Running & basketball courts', '3D avatar sports emotes', 'Wellness & fitness modules'],
   },
   {
-    title: 'Grand Boulevard & Reception Gates',
-    category: 'Campus Arrival',
+    title: 'Grand Boulevard & School Gate',
+    category: 'Campus Entrance',
     icon: '🏛️',
     badge: 'Welcome Portal',
     description:
-      'The ceremonial entrance portal framed by illuminated archways, solar lamp posts, manicured cypress trees, and interactive school noticeboards.',
-    coords: '[0, 0, 56]',
-    gradient: 'from-blue-600/30 to-indigo-600/30',
+      'The ceremonial school entrance framed by illuminated archways, solar lamp posts, manicured cypress trees, interactive noticeboards, and the morning assembly grounds.',
+    coords: 'X:0, Z:56',
+    gradient: 'from-blue-600/25 to-indigo-600/20',
+    borderColor: 'border-blue-500/30',
+    accentColor: 'text-blue-400',
+    arTag: 'AR School Map',
+    features: ['Illuminated entrance archway', 'Interactive noticeboards', 'Morning assembly grounds'],
   },
 ];
 
@@ -86,91 +118,140 @@ export const CampusHighlightsSection: React.FC<CampusHighlightsSectionProps> = (
   onEnterCampus,
   onOpenMap,
 }) => {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
   return (
-    <section id="landmarks" className="py-20 relative bg-slate-900/40 border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="landmarks" className="py-24 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-[#060d1c] via-[#07111f] to-[#060d1c]" />
+
+      {/* Subtle radial light */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-blue-700/4 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="section-glow-divider" />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-semibold mb-3">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-blue-300 text-xs font-semibold mb-4">
               <Compass className="w-4 h-4 text-blue-400" />
-              <span>Spatial Architecture</span>
+              <span>3D Spatial Architecture • 25+ Zones</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-100 tracking-tight">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight">
               Iconic Campus{' '}
-              <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">
-                Destinations
-              </span>
+              <span className="text-gradient-cyan">Destinations</span>
             </h2>
-            <p className="text-sm sm:text-base text-slate-400 mt-2 max-w-2xl">
-              Explore 25+ hand-crafted 3D zones designed to inspire curiosity, physical activity, and deep academic focus.
+            <p className="text-sm sm:text-base text-slate-400 mt-3 max-w-2xl">
+              25+ hand-crafted 3D zones designed to inspire curiosity and deep academic focus —
+              each with AR overlays, spatial audio, and immersive storytelling.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                soundManager.playClick();
-                onOpenMap();
-              }}
-              className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all hover:scale-105 shadow-md"
-            >
-              <Compass className="w-4 h-4 text-indigo-400" />
-              <span>Full Campus Blueprint</span>
-            </button>
-          </div>
+          <button
+            onClick={() => { soundManager.playClick(); onOpenMap(); }}
+            className="flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-xl glass-bright border border-indigo-500/30 text-slate-200 hover:text-white text-sm font-bold transition-all hover:scale-105 hover:border-indigo-500/60 shadow-lg shadow-indigo-950/30"
+          >
+            <Compass className="w-4 h-4 text-indigo-400" />
+            <span>Full Campus Blueprint</span>
+          </button>
         </div>
 
         {/* Landmarks Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {LANDMARKS.map((landmark, idx) => (
             <div
               key={idx}
-              onClick={() => {
-                soundManager.playClick();
-                onEnterCampus();
-              }}
-              className="group cursor-pointer rounded-3xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/50 p-6 transition-all duration-300 hover:scale-[1.02] shadow-xl hover:shadow-indigo-950/40 relative overflow-hidden flex flex-col justify-between"
+              onClick={() => { soundManager.playClick(); onEnterCampus(); }}
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              className={`group cursor-pointer rounded-3xl glass border ${landmark.borderColor} p-6 transition-all duration-400 hover:scale-[1.03] shadow-xl relative overflow-hidden flex flex-col justify-between`}
             >
-              {/* Top Accent Gradient */}
-              <div
-                className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${landmark.gradient}`}
-              />
+              {/* Top color accent bar */}
+              <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${landmark.gradient.replace('/25', '/60').replace('/20', '/50')}`} />
 
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-3xl p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60 group-hover:scale-110 transition-transform">
-                    {landmark.icon}
-                  </span>
+              {/* Background gradient glow */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${landmark.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
+
+              <div className="relative">
+                {/* Icon row */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="relative">
+                    <span className="text-4xl p-3 rounded-2xl glass border border-slate-700/40 group-hover:scale-110 transition-transform duration-300 block">
+                      {landmark.icon}
+                    </span>
+                  </div>
+
                   <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                    <span className={`text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-full glass border ${landmark.borderColor} ${landmark.accentColor} block mb-1`}>
                       {landmark.badge}
                     </span>
-                    <div className="text-[10px] font-mono text-slate-500 mt-1">
+                    {/* AR tag */}
+                    <div className={`flex items-center justify-end gap-1 text-[9px] font-mono ${landmark.accentColor}/60`}>
+                      <Scan className="w-2.5 h-2.5" />
+                      <span>{landmark.arTag}</span>
+                    </div>
+                    {/* Coords */}
+                    <div className="text-[9px] font-mono text-slate-600 mt-0.5">
                       {landmark.coords}
                     </div>
                   </div>
                 </div>
 
-                <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">
+                {/* Category */}
+                <div className={`text-[10px] font-bold uppercase tracking-widest ${landmark.accentColor} mb-1.5`}>
                   {landmark.category}
                 </div>
 
-                <h3 className="text-lg font-extrabold text-slate-100 group-hover:text-indigo-300 transition-colors mb-2">
+                {/* Title */}
+                <h3 className="text-lg font-extrabold text-slate-100 group-hover:text-white transition-colors mb-2.5">
                   {landmark.title}
                 </h3>
 
+                {/* Description */}
                 <p className="text-xs text-slate-400 leading-relaxed mb-4">
                   {landmark.description}
                 </p>
+
+                {/* Feature mini-list */}
+                <div className="space-y-1.5 mb-4">
+                  {landmark.features.map((f, fi) => (
+                    <div key={fi} className="flex items-center gap-2 text-[11px] text-slate-400">
+                      <div className={`w-1 h-1 rounded-full ${landmark.accentColor.replace('text-', 'bg-')} flex-shrink-0`} />
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-semibold text-indigo-400 group-hover:text-indigo-300">
-                <span>Teleport in 3D Campus</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              {/* Footer */}
+              <div className={`pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs font-bold ${landmark.accentColor} group-hover:opacity-100`}>
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>Teleport in 3D</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {hoveredIdx === idx && <Zap className="w-3.5 h-3.5 animate-pulse" />}
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Bottom CTA strip */}
+        <div className="mt-12 p-6 rounded-2xl glass border border-indigo-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <div className="text-slate-200 font-bold text-sm mb-1">Want to explore every corner?</div>
+            <div className="text-xs text-slate-500">25+ zones across 3 academic blocks, sports arena, library, observatory & more.</div>
+          </div>
+          <button
+            onClick={() => { soundManager.playClick(); onOpenMap(); }}
+            className="flex-shrink-0 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm hover:scale-105 transition-all flex items-center gap-2 shadow-lg shadow-indigo-700/30"
+          >
+            <Compass className="w-4 h-4" />
+            <span>View Full Blueprint Map</span>
+          </button>
         </div>
       </div>
     </section>
