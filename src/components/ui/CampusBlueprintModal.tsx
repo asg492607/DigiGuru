@@ -25,6 +25,7 @@ interface CampusBlueprintModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTravelToZone: (zoneId: CampusZoneId) => void;
+  onEnterBuilding?: (buildingId: string, floor?: number) => void;
   currentZoneId: CampusZoneId;
 }
 
@@ -53,6 +54,7 @@ export const CampusBlueprintModal: React.FC<CampusBlueprintModalProps> = ({
   isOpen,
   onClose,
   onTravelToZone,
+  onEnterBuilding,
   currentZoneId,
 }) => {
   const [selectedZone, setSelectedZone] = useState<CampusZone>(
@@ -677,17 +679,33 @@ export const CampusBlueprintModal: React.FC<CampusBlueprintModalProps> = ({
                   Campus Coordinates: [{selectedZone.position.join(', ')}]
                 </div>
 
-                <button
-                  onClick={() => {
-                    soundManager.playClick();
-                    onTravelToZone(selectedZone.id);
-                    onClose();
-                  }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 transition-all hover:scale-105 active:scale-95"
-                >
-                  <span>Walk to {selectedZone.name}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2.5">
+                  {onEnterBuilding && (
+                    <button
+                      onClick={() => {
+                        soundManager.playClick();
+                        onEnterBuilding(selectedZone.id, activeFloorIndex);
+                        onClose();
+                      }}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-sky-600/30 transition-all hover:scale-105 active:scale-95 border border-sky-400/40"
+                    >
+                      <DoorOpen className="w-4 h-4" />
+                      <span>Enter Interior (Floor {activeFloorIndex})</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      soundManager.playClick();
+                      onTravelToZone(selectedZone.id);
+                      onClose();
+                    }}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm shadow-lg transition-all hover:scale-105 active:scale-95"
+                  >
+                    <span>Walk to Exterior Front</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -112,10 +112,14 @@ function DigiGuruApp() {
   const [isMapOpen, setIsMapOpen] = useState<boolean>(false);
   const [isBackpackOpen, setIsBackpackOpen] = useState<boolean>(false);
 
-  // Check if player is currently inside the Nursery Wing
+  // Active Building & Floor State for full multi-floor interiors
+  const [activeBuildingId, setActiveBuildingId] = useState<string | null>(null);
+  const [activeFloor, setActiveFloor] = useState<number>(0);
+
+  // Check if player is currently inside the Nursery Wing classroom
   const isInsideNursery = useMemo(() => {
-    return playerPos[0] < -14 && playerPos[0] > -30 && playerPos[2] > -2 && playerPos[2] < 12;
-  }, [playerPos]);
+    return activeBuildingId === 'bldg_nursery' || (playerPos[0] < -14 && playerPos[0] > -30 && playerPos[2] > -2 && playerPos[2] < 12);
+  }, [activeBuildingId, playerPos]);
 
   // If inside classroom and a class session is active, start teacher entering if still in lounge
   useEffect(() => {
@@ -159,10 +163,61 @@ function DigiGuruApp() {
     }, 4500);
   }, [isInsideNursery]);
 
-  // Determine current zone based on proximity
+  // Enter a building interior
+  const handleEnterBuilding = useCallback((buildingId: string, floor = 0) => {
+    soundManager.playDoorSlide();
+    setActiveBuildingId(buildingId);
+    setActiveFloor(floor);
+    setPlayerPos([0, 0, 7.5]); // Positioned safely inside near the exit door
+    setClickTarget(null);
+
+    const targetZone = CAMPUS_ZONES.find((z) => z.id === buildingId);
+    if (targetZone) {
+      setClassmateToast(`🚪 Entered ${targetZone.name} • Level ${floor}`);
+      setTimeout(() => setClassmateToast(null), 3000);
+    }
+  }, []);
+
+  // Change floor via elevator or stairs
+  const handleChangeFloor = useCallback((floor: number) => {
+    setActiveFloor(floor);
+    setPlayerPos([0, 0, -4.5]); // Positioned near lift and stairs lobby
+    setClickTarget(null);
+
+    if (activeBuildingId) {
+      const bldg = CAMPUS_ZONES.find((z) => z.id === activeBuildingId);
+      const floorName =
+        bldg?.floorsDetail?.[floor]?.name || (floor === 0 ? 'Ground Floor' : `Floor ${floor}`);
+      setClassmateToast(`🛗 Level ${floor}: ${floorName}`);
+      setTimeout(() => setClassmateToast(null), 2500);
+    }
+  }, [activeBuildingId]);
+
+  // Exit building interior back to campus grounds
+  const handleExitToCampus = useCallback(() => {
+    soundManager.playDoorSlide();
+    const currentBldg = activeBuildingId
+      ? CAMPUS_ZONES.find((z) => z.id === activeBuildingId)
+      : null;
+
+    setActiveBuildingId(null);
+    setActiveFloor(0);
+
+    if (currentBldg) {
+      // Place player directly in front of the building exterior entrance steps
+      setPlayerPos([currentBldg.position[0], 0, currentBldg.position[2] + 9.5]);
+    } else {
+      setPlayerPos([-22, 0, 14]);
+    }
+    setClickTarget(null);
+    setClassmateToast(`🚶 Exited to Main Campus Quad`);
+    setTimeout(() => setClassmateToast(null), 2000);
+  }, [activeBuildingId]);
+
+  // Determine current zone based on proximity or current active building
   const currentZone = useMemo(() => {
-    if (isInsideNursery) {
-      return CAMPUS_ZONES.find((z) => z.id === 'bldg_nursery') || CAMPUS_ZONES[3];
+    if (activeBuildingId) {
+      return CAMPUS_ZONES.find((z) => z.id === activeBuildingId) || CAMPUS_ZONES[0];
     }
     let closest = CAMPUS_ZONES[0];
     let minDist = Infinity;
@@ -174,32 +229,30 @@ function DigiGuruApp() {
       }
     });
     return closest;
-  }, [playerPos, isInsideNursery]);
+  }, [playerPos, activeBuildingId]);
 
-  // Teleport to a zone
+  // Teleport to a zone or enter building
   const handleTravelToZone = useCallback((zoneId: CampusZoneId | string) => {
     const targetZone = CAMPUS_ZONES.find((z) => z.id === zoneId);
     if (!targetZone) return;
 
     soundManager.playClick();
-    if (zoneId === 'bldg_nursery') {
-      setPlayerPos([-22, 0, 2]);
-    } else if (zoneId === 'shivaji_statue') {
+    if (zoneId === 'shivaji_statue') {
+      setActiveBuildingId(null);
       setPlayerPos([0, 0, 5]);
     } else if (zoneId === 'entrance') {
-      setPlayerPos([0, 0, 56]);
+      setActiveBuildingId(null);
+      setPlayerPos([0, 0, 50]);
+    } else if (targetZone.floorsCount && targetZone.floorsCount > 1) {
+      // Enter building interior directly
+      handleEnterBuilding(zoneId, 0);
+      return;
     } else {
-      setPlayerPos([targetZone.position[0], 0, targetZone.position[2] + 7]);
+      setActiveBuildingId(null);
+      setPlayerPos([targetZone.position[0], 0, targetZone.position[2] + 8]);
     }
     setClickTarget(null);
-  }, []);
-
-  // Exit classroom back to the main quad
-  const handleExitToCampus = useCallback(() => {
-    soundManager.playClick();
-    setPlayerPos([-22, 0, 14]);
-    setClickTarget(null);
-  }, []);
+  }, [handleEnterBuilding]);
 
   // Lesson Step Navigation
   const handleNextStep = useCallback(() => {
@@ -269,7 +322,10 @@ function DigiGuruApp() {
           <CampusCanvas
             playerPos={playerPos}
             onPlayerPosChange={setPlayerPos}
-            isInsideNursery={isInsideNursery}
+            activeBuildingId={activeBuildingId}
+            activeFloor={activeFloor}
+            onEnterBuilding={handleEnterBuilding}
+            onChangeFloor={handleChangeFloor}
             onEnterZone={(id) => handleTravelToZone(id as CampusZoneId)}
             onExitToCampus={handleExitToCampus}
             classmates={classmates}
@@ -287,11 +343,16 @@ function DigiGuruApp() {
             emote={activeEmote}
           />
 
-          {/* Main Campus HUD Overlay */}
+          {/* Main Campus HUD Overlay with Lift & Stairs Navigator */}
           <CampusHUD
             currentZone={currentZone}
             playerPos={playerPos}
             isInsideNursery={isInsideNursery}
+            activeBuildingId={activeBuildingId}
+            activeFloor={activeFloor}
+            onEnterBuilding={handleEnterBuilding}
+            onChangeFloor={handleChangeFloor}
+            onExitToCampus={handleExitToCampus}
             digiStars={student.digiStars}
             studentName={user?.name || student.name.replace(/[^a-zA-Z\s]/g, '').trim()}
             studentAvatar={user?.avatar || '👦'}
@@ -368,6 +429,10 @@ function DigiGuruApp() {
         onClose={() => setIsMapOpen(false)}
         onTravelToZone={(id) => {
           handleTravelToZone(id);
+          setViewMode('campus');
+        }}
+        onEnterBuilding={(bldgId, floor) => {
+          handleEnterBuilding(bldgId, floor);
           setViewMode('campus');
         }}
         currentZoneId={currentZone.id}
