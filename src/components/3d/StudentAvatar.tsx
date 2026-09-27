@@ -6,7 +6,8 @@ import { soundManager } from '../../utils/audio';
 interface StudentAvatarProps {
   position: [number, number, number];
   onPositionChange: (pos: [number, number, number]) => void;
-  isInsideNursery: boolean;
+  isInsideNursery?: boolean;
+  isInsideBuilding?: boolean;
   virtualJoystick: { x: number; y: number; active: boolean };
   clickTarget: [number, number, number] | null;
   onClearClickTarget: () => void;
@@ -16,12 +17,14 @@ interface StudentAvatarProps {
 export const StudentAvatar: React.FC<StudentAvatarProps> = ({
   position,
   onPositionChange,
-  isInsideNursery,
+  isInsideNursery = false,
+  isInsideBuilding = false,
   virtualJoystick,
   clickTarget,
   onClearClickTarget,
   emote,
 }) => {
+  const isIndoor = isInsideBuilding || isInsideNursery;
   const avatarRef = useRef<THREE.Group>(null);
   const headGroupRef = useRef<THREE.Group>(null);
   const eyesGroupRef = useRef<THREE.Group>(null);
@@ -48,7 +51,7 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
   // 360-degree Dynamic Camera Orbit & Zoom
   const camYaw = useRef<number>(0);
   const camPitch = useRef<number>(0.32);
-  const camDist = useRef<number>(isInsideNursery ? 6.0 : 9.5);
+  const camDist = useRef<number>(isIndoor ? 6.0 : 9.5);
 
   // Sync external position changes
   useEffect(() => {
@@ -86,8 +89,8 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
     };
 
     const handleWheel = (e: WheelEvent) => {
-      const minD = isInsideNursery ? 3.5 : 4.5;
-      const maxD = isInsideNursery ? 8.5 : 18.0;
+      const minD = isIndoor ? 3.5 : 4.5;
+      const maxD = isIndoor ? 8.5 : 18.0;
       camDist.current = THREE.MathUtils.clamp(camDist.current + e.deltaY * 0.005, minD, maxD);
     };
 
@@ -109,7 +112,7 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [isInsideNursery]);
+  }, [isIndoor]);
 
   // Keyboard listeners
   useEffect(() => {
@@ -197,12 +200,12 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
     }
 
     // Boundaries
-    if (isInsideNursery) {
-      playerPos.current.x = THREE.MathUtils.clamp(playerPos.current.x, -22 - 7.5, -22 + 7.5);
-      playerPos.current.z = THREE.MathUtils.clamp(playerPos.current.z, 5 - 6.5, 5 + 6.5);
+    if (isIndoor) {
+      playerPos.current.x = THREE.MathUtils.clamp(playerPos.current.x, -10.5, 10.5);
+      playerPos.current.z = THREE.MathUtils.clamp(playerPos.current.z, -9.5, 9.5);
     } else {
-      playerPos.current.x = THREE.MathUtils.clamp(playerPos.current.x, -58, 58);
-      playerPos.current.z = THREE.MathUtils.clamp(playerPos.current.z, -50, 52);
+      playerPos.current.x = THREE.MathUtils.clamp(playerPos.current.x, -65, 65);
+      playerPos.current.z = THREE.MathUtils.clamp(playerPos.current.z, -62, 58);
     }
 
     if (avatarRef.current) {
